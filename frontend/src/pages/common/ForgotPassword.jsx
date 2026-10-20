@@ -24,7 +24,7 @@ export default function ForgotPassword() {
         <Input label="E-mail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <Button type="submit" variant="primary" loading={state.busy} className="btn-block">Send reset link</Button>
       </form>}
-      <p className="small"><Link to="/login">Back to log in</Link></p>
+      <p className="small"><Link to="/faculty-login">Back to Faculty Login</Link></p>
     </Card></div></div>
   );
 }

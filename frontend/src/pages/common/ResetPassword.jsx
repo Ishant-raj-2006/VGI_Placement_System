@@ -19,7 +19,7 @@ export default function ResetPassword() {
   };
   return (
     <div className="auth-wrap"><div className="auth-card"><Card title="Set a new password">
-      {state.done ? <><Alert kind="success">Password updated. All other sessions were signed out.</Alert><Link className="btn btn-primary" to="/login">Log in</Link></> : <form onSubmit={submit} className="stack-sm">
+      {state.done ? <><Alert kind="success">Password updated. All other sessions were signed out.</Alert><Link className="btn btn-primary" to="/faculty-login">Faculty Login</Link></> : <form onSubmit={submit} className="stack-sm">
         {state.error && <Alert kind="error">{state.error.message}</Alert>}
         {!sp.get('token') && <Input label="Reset token" required value={token} onChange={(e) => setToken(e.target.value)} hint="Paste the token from your e-mail" />}
         <Input label="New password" type="password" autoComplete="new-password" required value={pw} onChange={(e) => setPw(e.target.value)} hint="8+ characters with upper-case, lower-case and a digit" />

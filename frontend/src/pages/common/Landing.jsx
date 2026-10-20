@@ -20,7 +20,7 @@ export default function Landing() {
         <Link to="/" className="brand"><img className="brand-logo" src="/logo.png" alt="" /> CPMS</Link>
         <div className="row gap-sm">
           <Link to="/contact" className="btn btn-ghost">Contact</Link>
-          {user ? <Link className="btn btn-primary" to={ROLE_HOME[user.role]}>Open dashboard</Link> : <><Link className="btn" to="/login">Log in</Link><Link className="btn btn-primary" to="/register">Register</Link></>}
+          {user ? <Link className="btn btn-primary" to={user.mustChangePassword ? '/first-login' : user.mustCompleteProfile ? '/student/profile' : ROLE_HOME[user.role]}>Open dashboard</Link> : <><Link className="btn" to="/student-login">Student Login</Link><Link className="btn btn-primary" to="/faculty-login">Faculty Login</Link></>}
         </div>
       </nav>
       <header className="hero">

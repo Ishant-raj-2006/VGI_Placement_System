@@ -36,16 +36,43 @@ describe('health & envelope', () => {
 });
 
 describe('Authentication & registration', () => {
-  it('student registers; weak password and duplicate email rejected', async () => {
-    const body = { role: 'student', name: 'New Student', email: 'new.student@college.edu', password: 'Str0ng@Pass1', studentId: 'N-1', rollNumber: 'R-N1', department: 'CSE', graduationYear: 2028 };
-    const weak = await t.api.post('/api/v1/auth/register').send({ ...body, password: '123' });
-    assert.equal(weak.status, 400);
-    const ok = await t.api.post('/api/v1/auth/register').send(body);
-    assert.equal(ok.status, 201, JSON.stringify(ok.body));
-    assert.equal(ok.body.data.user.role, 'student');
-    assert.equal(ok.body.data.user.passwordHash, undefined);
-    const dup = await t.api.post('/api/v1/auth/register').send(body);
-    assert.ok([400, 409].includes(dup.status));
+  it('student self-registration is disabled', async () => {
+    const r = await t.api.post('/api/v1/auth/register').send({ role: 'student', name: 'New Student', email: 'new.student@college.edu', password: 'Str0ng@Pass1', studentId: 'N-1' });
+    assert.equal(r.status, 400);
+  });
+  it('faculty creates a student who must change the DOB password and complete their profile', async () => {
+    const studentId = 'ONBOARD-001';
+    const dateOfBirth = '2005-09-10';
+    const created = await tpo.post('/admin/students', { name: 'Onboard Student', studentId, dateOfBirth });
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+    const login = await t.api.post('/api/v1/auth/login').send({ identifier: studentId, password: dateOfBirth });
+    assert.equal(login.status, 200, JSON.stringify(login.body));
+    assert.equal(login.body.data.user.mustChangePassword, true);
+    assert.equal(login.body.data.user.mustCompleteProfile, true);
+    const student = t.as(login.body.data.token);
+    assert.equal((await student.get('/student/drives')).status, 403);
+    assert.equal((await student.get('/student/profile')).status, 403);
+    const changed = await student.post('/auth/change-password', { currentPassword: dateOfBirth, newPassword: 'N3w@Passw0rd' });
+    assert.equal(changed.status, 200, JSON.stringify(changed.body));
+    assert.equal((await student.get('/student/drives')).status, 403);
+    const profile = await student.put('/student/profile', { rollNumber: 'ONBOARD-ROLL-001', degree: 'B.Tech', department: 'CSE', graduationYear: new Date().getFullYear() + 1, currentSemester: 1 });
+    assert.equal(profile.status, 200, JSON.stringify(profile.body));
+    assert.equal(profile.body.data.user.mustCompleteProfile, false);
+    assert.equal((await student.get('/student/profile')).status, 200);
+  });
+  it('legacy student accounts that were not faculty-provisioned cannot log in', async () => {
+    const { User, StudentProfile } = await import('../../src/models/index.js');
+    const { hashPassword } = await import('../../src/services/auth.service.js');
+    const user = await User.create({
+      name: 'Legacy Student',
+      email: 'legacy.student@college.edu',
+      passwordHash: await hashPassword('Old@Pass123'),
+      role: 'student',
+    });
+    await StudentProfile.create({ userId: user._id, studentId: 'LEGACY-001', rollNumber: 'LEGACY-001' });
+    const result = await t.api.post('/api/v1/auth/login').send({ identifier: 'LEGACY-001', password: 'Old@Pass123' });
+    assert.equal(result.status, 403);
+    assert.equal(result.body.error.code, 'STUDENT_ACCOUNT_DISABLED');
   });
   it('cannot self-register as tpo/super_admin (role escalation blocked)', async () => {
     for (const role of ['tpo', 'super_admin', 'admin']) {
@@ -55,8 +82,7 @@ describe('Authentication & registration', () => {
   });
   it('mass-assignment: extra fields such as accountStatus/role cannot be injected', async () => {
     const r = await t.api.post('/api/v1/auth/register').send({ role: 'student', name: 'M', email: 'mass@college.edu', password: 'Str0ng@Pass1', studentId: 'M1', rollNumber: 'RM1', department: 'CSE', graduationYear: 2028, accountStatus: 'active', emailVerified: true, isAdmin: true });
-    assert.equal(r.status, 201);
-    assert.equal(r.body.data.user.role, 'student');
+    assert.equal(r.status, 400);
   });
   it('recruiter registration creates a company awaiting verification', async () => {
     const r = await t.api.post('/api/v1/auth/register').send({ role: 'recruiter', name: 'Rec', email: 'rec@newco.com', password: 'Str0ng@Pass1', company: { name: 'NewCo' } });

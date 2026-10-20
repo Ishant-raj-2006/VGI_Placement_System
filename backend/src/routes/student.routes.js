@@ -66,6 +66,7 @@ const academicInput = z.object({
 
 const profileUpdate = z.object({
   name: zReqText(120).optional(),
+  rollNumber: zReqText(40).optional(),
   collegeName: zText(200).optional(),
   degree: zText(60).optional(),
   department: zReqText(40).optional(),
@@ -78,7 +79,25 @@ const profileUpdate = z.object({
 studentRouter.put('/profile', validate({ body: profileUpdate }), asyncHandler(async (req, res) => {
   const b = req.body;
   const p = req.profile;
+  if (req.user.mustCompleteProfile && !(
+    (b.rollNumber || (p.rollNumber && !p.rollNumber.startsWith('PENDING-'))) &&
+    (b.department || p.department) &&
+    (b.degree || p.degree) &&
+    (b.graduationYear || p.graduationYear) &&
+    (b.currentSemester || p.currentSemester)
+  )) {
+    throw badRequest('Complete roll number, degree, department, graduation year, and current semester to finish your profile', 'PROFILE_INCOMPLETE');
+  }
   let academicChanged = false;
+  if (b.rollNumber && b.rollNumber !== p.rollNumber) {
+    if (!p.rollNumber.startsWith('PENDING-') && !req.user.mustCompleteProfile) {
+      throw badRequest('Roll number can only be changed by the placement cell', 'ROLL_NUMBER_LOCKED');
+    }
+    if (await StudentProfile.exists({ rollNumber: b.rollNumber.trim(), _id: { $ne: p._id } })) {
+      throw conflict('This roll number is already registered', 'ROLL_NUMBER_EXISTS');
+    }
+    p.rollNumber = b.rollNumber.trim();
+  }
   if (b.name) await User.updateOne({ _id: req.user._id }, { $set: { name: b.name } });
   for (const k of ['collegeName', 'degree', 'currentSemester']) if (b[k] !== undefined) p[k] = b[k];
   if (b.department && normalizeDept(b.department) !== p.department) {
@@ -114,6 +133,10 @@ studentRouter.put('/profile', validate({ body: profileUpdate }), asyncHandler(as
   await p.save();
   req.profile = p;
   const user = await User.findById(req.user._id);
+  if (user.mustCompleteProfile && user.name && p.rollNumber && !p.rollNumber.startsWith('PENDING-') && p.degree && p.department && p.graduationYear && p.currentSemester) {
+    user.mustCompleteProfile = false;
+    await user.save();
+  }
   return ok(res, { user, profile: p, completion: await completionFor(req), verificationReset: academicChanged });
 }));
 

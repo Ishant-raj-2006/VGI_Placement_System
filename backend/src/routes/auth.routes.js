@@ -8,23 +8,8 @@ import { ok, created } from '../utils/response.js';
 import * as auth from '../services/auth.service.js';
 import { StudentProfile, CompanyUser, Company, User } from '../models/index.js';
 import { audit } from '../services/audit.service.js';
-import { MAX_GRADUATION_YEAR } from '../constants/index.js';
 
 const router = Router();
-
-const studentRegister = z.object({
-  role: z.literal('student'),
-  name: zReqText(120),
-  email: zEmail,
-  password: zPassword,
-  studentId: zReqText(40),
-  rollNumber: zReqText(40),
-  department: zReqText(40),
-  degree: zText(60).optional(),
-  currentSemester: z.coerce.number().int().min(1).max(8).optional(),
-  graduationYear: z.coerce.number().int().min(2000).max(MAX_GRADUATION_YEAR),
-  collegeName: zText(200).optional(),
-});
 
 const recruiterRegister = z
   .object({
@@ -51,11 +36,10 @@ const recruiterRegister = z
 router.post(
   '/register',
   sensitiveLimiter,
-  validate({ body: z.union([studentRegister, recruiterRegister]) }),
+  validate({ body: recruiterRegister }),
   asyncHandler(async (req, res) => {
-    // Only students and recruiters can self-register. TPO / Super Admin accounts are created by a Super Admin.
     const body = req.body;
-    const result = body.role === 'student' ? await auth.registerStudent(body) : await auth.registerRecruiter(body);
+    const result = await auth.registerRecruiter(body);
     await audit({ actor: result.user, action: 'user.registered', entityType: 'User', entityId: result.user._id, metadata: { role: result.user.role }, req });
     return created(res, {
       user: result.user,
@@ -72,9 +56,9 @@ router.post(
 router.post(
   '/login',
   loginLimiter,
-  validate({ body: z.object({ email: zEmail, password: z.string().min(1).max(128) }) }),
+  validate({ body: z.object({ identifier: z.string().trim().min(1).max(254).optional(), email: zEmail.optional(), password: z.string().min(1).max(128) }).refine((body) => body.identifier || body.email, { path: ['identifier'], message: 'College ID or e-mail is required' }) }),
   asyncHandler(async (req, res) => {
-    const { token, expiresAt, user } = await auth.login({ ...req.body, ip: req.ip, userAgent: req.headers['user-agent'] });
+    const { token, expiresAt, user } = await auth.login({ ...req.body, identifier: req.body.identifier || req.body.email, ip: req.ip, userAgent: req.headers['user-agent'] });
     await audit({ actor: user, action: 'auth.login', entityType: 'User', entityId: user._id, req });
     return ok(res, { token, expiresAt, user, ...(await profileContext(user)) });
   })

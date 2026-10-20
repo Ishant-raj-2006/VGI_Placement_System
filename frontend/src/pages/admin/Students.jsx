@@ -15,7 +15,7 @@ export default function Students() {
   const state = useAsync(() => api.get('/admin/students', params), [JSON.stringify(params)]);
   return (
     <>
-      <PageHeader title="Students" subtitle="Verify academic records and manage student accounts." actions={<><Link className="btn" to="/admin/students/duplicates">Possible duplicates</Link><Link className="btn btn-primary" to="/admin/students/import">Import CSV</Link></>} />
+      <PageHeader title="Students" subtitle="Verify academic records and manage student accounts." actions={<><Link className="btn" to="/admin/students/duplicates">Possible duplicates</Link><Link className="btn" to="/admin/students/import">Import CSV</Link><Link className="btn btn-primary" to="/admin/students/new">Add student</Link></>} />
       <FilterBar>
         <SearchInput value={q} onChange={setQ} placeholder="Name, e-mail, student ID, roll no…" />
         <Select label="Verification" placeholder="All" options={PROFILE_VERIFICATION} value={list.params.verificationStatus || ''} onChange={(e) => list.setFilter('verificationStatus', e.target.value)} />

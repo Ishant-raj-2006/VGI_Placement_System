@@ -26,6 +26,21 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
   const user = await User.findById(payload.sub);
   if (!user) throw unauthorized();
   if (user.accountStatus === ACCOUNT_STATUS.DEACTIVATED) throw forbidden('This account has been deactivated', 'ACCOUNT_DEACTIVATED');
+  if (user.role === 'student' && !user.facultyProvisioned) {
+    throw forbidden('This student account is no longer active. Ask faculty to create a new account.', 'STUDENT_ACCOUNT_DISABLED');
+  }
+
+  const route = req.originalUrl.split('?')[0].replace(/^\/api\/v1/, '');
+  const canChangePassword = req.method === 'POST' && route === '/auth/change-password';
+  const canReadAccount = req.method === 'GET' && route === '/auth/me';
+  const canLogout = req.method === 'POST' && route === '/auth/logout';
+  if (user.mustChangePassword && !canChangePassword && !canReadAccount && !canLogout) {
+    throw forbidden('Change your temporary password before continuing', 'PASSWORD_CHANGE_REQUIRED');
+  }
+  const canCompleteProfile = user.role === 'student' && ['/student/profile'].includes(route) && ['GET', 'PUT'].includes(req.method);
+  if (user.mustCompleteProfile && !canChangePassword && !canReadAccount && !canLogout && !canCompleteProfile) {
+    throw forbidden('Complete your student profile before continuing', 'PROFILE_COMPLETION_REQUIRED');
+  }
 
   req.user = user;
   req.session = session;

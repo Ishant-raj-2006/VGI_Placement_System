@@ -12,7 +12,7 @@ import {
   RecruitmentRound, Offer, AuditLog, Ticket, Session, EmailLog, Policy,
 } from '../models/index.js';
 import {
-  ROLES, ADMIN_ROLES, ACCOUNT_STATUS, PROFILE_VERIFICATION, COMPANY_STATUS, APPROVAL, PUBLICATION, APP_STATUS_LIST, OFFER_STATUS,
+  ROLES, ADMIN_ROLES, ACCOUNT_STATUS, PROFILE_VERIFICATION, COMPANY_STATUS, APPROVAL, PUBLICATION, APP_STATUS_LIST, OFFER_STATUS, MAX_GRADUATION_YEAR,
   TICKET_STATUS, TICKET_TYPES, ROLE_LIST, POLICY_CATEGORY,
 } from '../constants/index.js';
 import { notFound, conflict, badRequest, forbidden } from '../utils/AppError.js';
@@ -26,7 +26,6 @@ import { audit } from '../services/audit.service.js';
 import { notify } from '../services/notification.service.js';
 import { companyMemberUserIds } from '../services/offer.service.js';
 import { dbState } from '../config/db.js';
-import { MAX_GRADUATION_YEAR } from '../constants/index.js';
 
 export const adminRouter = Router();
 adminRouter.use(authenticate, requireRole(...ADMIN_ROLES));
@@ -84,6 +83,23 @@ adminRouter.get(
       activeBacklogsEntered: p.academicSummary?.entered?.activeBacklogs ?? null,
       user: users.get(String(p.userId)),
     })), pageMeta(pg, total));
+  })
+);
+
+adminRouter.post(
+  '/students',
+  validate({ body: z.object({ name: zReqText(120), studentId: zReqText(40), dateOfBirth: zDate.min(new Date('1900-01-01')).max(new Date()) }) }),
+  asyncHandler(async (req, res) => {
+    const result = await authSvc.createStudentAccount({ actor: req.user, ...req.body, req });
+    return created(res, {
+      student: {
+        _id: result.profile._id,
+        studentId: result.profile.studentId,
+        name: result.user.name,
+        accountStatus: result.user.accountStatus,
+      },
+      initialPasswordFormat: 'YYYY-MM-DD',
+    });
   })
 );
 

@@ -21,8 +21,8 @@ Policy (versioned key/value) · AuditLog (append-only) · Ticket
 
 | Collection (model) | Purpose / key fields | Indexes |
 |---|---|---|
-| `users` (User) | name, email, passwordHash, role, accountStatus, failedLoginAttempts, lockedUntil, lastLoginAt, emailVerifiedAt, notification prefs | unique `email`; `role+accountStatus` |
-| `studentProfiles` (StudentProfile) | userId, studentId, rollNumber, department, degree, graduationYear, personal, skills, interests, `academicSummary.{entered,verified}` (cgpa, backlogs, 10th/12th/diploma %), verificationStatus (`pending_verification`/`verified`/`correction_required`…), completion, photo | unique `userId`, `studentId`, `rollNumber`; `department+graduationYear`; `verificationStatus` |
+| `users` (User) | name, email, passwordHash, role, accountStatus, facultyProvisioned, mustChangePassword, mustCompleteProfile, failedLoginAttempts, lockedUntil, lastLoginAt, emailVerifiedAt, notification prefs | unique `email`; `role+accountStatus` |
+| `studentProfiles` (StudentProfile) | userId, studentId, rollNumber, optional department, degree, graduationYear, personal (including date of birth), skills, interests, `academicSummary.{entered,verified}` (cgpa, backlogs, 10th/12th/diploma %), verificationStatus (`pending_verification`/`verified`/`correction_required`…), completion, photo | unique `userId`, `studentId`, `rollNumber`; `department+graduationYear`; `verificationStatus` |
 | `academicRecords` (AcademicRecord) | studentId, recordType (class_10/class_12/diploma/semester/degree_completion), semester, score + scale, backlogs, verification status/by/at/remark | `studentId+recordType+semester` |
 | `studentProjects` (StudentProject) | title, description, technologies, links, dates, role | `studentId+createdAt` |
 | `resumes` (Resume) | studentId, label, file metadata (stored name, MIME, size, sha256), isActive | `studentId+isActive+uploadedAt` |

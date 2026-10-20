@@ -59,7 +59,7 @@ export default function Profile() {
     if (d && loadedId !== d.profile._id) {
       setLoadedId(d.profile._id);
       const currentSemester = d.profile.currentSemester ?? '';
-      f.setValues({ name: d.user.name, collegeName: d.profile.collegeName || '', degree: d.profile.degree || '', degreeOther: '', department: d.profile.department || '', departmentOther: '', currentYear: currentSemester ? String(Math.ceil(currentSemester / 2)) : '', currentSemester: currentSemester ? String(currentSemester) : '', graduationYear: d.profile.graduationYear || '', contactNumber: d.profile.personal?.contactNumber || '', dateOfBirth: toInputDate(d.profile.personal?.dateOfBirth), address: d.profile.personal?.address || '' });
+      f.setValues({ name: d.user.name, rollNumber: d.profile.rollNumber?.startsWith('PENDING-') ? '' : d.profile.rollNumber || '', collegeName: d.profile.collegeName || '', degree: d.profile.degree || '', degreeOther: '', department: d.profile.department || '', departmentOther: '', currentYear: currentSemester ? String(Math.ceil(currentSemester / 2)) : '', currentSemester: currentSemester ? String(currentSemester) : '', graduationYear: d.profile.graduationYear || '', contactNumber: d.profile.personal?.contactNumber || '', dateOfBirth: toInputDate(d.profile.personal?.dateOfBirth), address: d.profile.personal?.address || '' });
     }
   }, [d]); // eslint-disable-line
 
@@ -86,7 +86,7 @@ export default function Profile() {
     }
     setBusy(true);
     try {
-      const { data } = await api.put('/student/profile', { name: v.name, collegeName: v.collegeName, degree: v.degree === 'Other' ? v.degreeOther.trim() : v.degree, department: v.degree === 'Other' || v.department === 'OTHER' ? v.departmentOther.trim() : v.department, currentSemester: v.currentSemester === '' ? null : Number(v.currentSemester), graduationYear: Number(v.graduationYear), personal: { contactNumber: v.contactNumber, dateOfBirth: v.dateOfBirth || null, address: v.address } });
+      const { data } = await api.put('/student/profile', { name: v.name, rollNumber: v.rollNumber, collegeName: v.collegeName, degree: v.degree === 'Other' ? v.degreeOther.trim() : v.degree, department: v.degree === 'Other' || v.department === 'OTHER' ? v.departmentOther.trim() : v.department, currentSemester: v.currentSemester === '' ? null : Number(v.currentSemester), graduationYear: Number(v.graduationYear), personal: { contactNumber: v.contactNumber, dateOfBirth: v.dateOfBirth || null, address: v.address } });
       toast.success(data.verificationReset ? 'Saved. Academic changes need to be verified again.' : 'Profile saved');
       state.reload(); refresh();
     } catch (err) { setError(err); f.setErrors(err.fieldErrors); } finally { setBusy(false); }
@@ -102,10 +102,11 @@ export default function Profile() {
             <Card title="Photo"><Photo profileId={data.profile._id} has={data.hasPhoto} onChange={state.reload} /></Card>
             <Card title="Details">
               {error && <Alert kind="error">{error.message}</Alert>}
-              <Alert kind="info">Student ID <strong>{data.profile.studentId}</strong> and roll number <strong>{data.profile.rollNumber}</strong> can only be changed by the placement cell. Changing department or graduation year re-opens academic verification.</Alert>
+              <Alert kind="info">College ID <strong>{data.profile.studentId}</strong> is your login ID and cannot be changed. Add your roll number below; once saved, only the placement cell can change it. Changing department or graduation year re-opens academic verification.</Alert>
               <form onSubmit={save}>
                 <FormGrid>
                   <Input label="Full name" required {...f.bind('name')} />
+                  <Input label="Roll number" required readOnly={!!data.profile.rollNumber && !data.profile.rollNumber.startsWith('PENDING-')} {...f.bind('rollNumber')} />
                   <Input label="Contact number" {...f.bind('contactNumber')} />
                   <Input label="Date of birth" type="date" {...f.bind('dateOfBirth')} />
                   <Input label="College" {...f.bind('collegeName')} />

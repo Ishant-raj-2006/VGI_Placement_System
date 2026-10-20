@@ -22,7 +22,7 @@ export default function VerifyEmail() {
   return (
     <div className="auth-wrap"><div className="auth-card"><Card title="E-mail verification">
       {state.status === 'working' && <Spinner text="Verifying…" />}
-      {state.status === 'ok' && <><Alert kind="success">Your e-mail is verified. You can now log in.</Alert><Link className="btn btn-primary" to="/login">Log in</Link></>}
+      {state.status === 'ok' && <><Alert kind="success">Your e-mail is verified. You can now log in.</Alert><Link className="btn btn-primary" to="/faculty-login">Faculty Login</Link></>}
       {state.status === 'error' && <Alert kind="error">{state.error.message}</Alert>}
       {state.status !== 'ok' && state.status !== 'working' && <form onSubmit={resend} className="stack-sm">
         <p className="muted">Need a new verification link?</p>

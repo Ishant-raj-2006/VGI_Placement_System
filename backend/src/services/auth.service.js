@@ -5,7 +5,7 @@ import { User, StudentProfile, Company, CompanyUser, Session, Token } from '../m
 import { ROLES, ACCOUNT_STATUS, COMPANY_STATUS } from '../constants/index.js';
 import { AppError, conflict, forbidden, unauthorized, badRequest, notFound } from '../utils/AppError.js';
 import { signAccessToken } from '../utils/tokens.js';
-import { normalizeEmail, normalizeDept, sha256, randomToken, escapeRegex } from '../utils/helpers.js';
+import { normalizeEmail, sha256, randomToken, escapeRegex } from '../utils/helpers.js';
 import { getAllPolicies } from './policy.service.js';
 import { queueEmail } from './email.service.js';
 import { notify } from './notification.service.js';
@@ -32,45 +32,45 @@ async function sendVerificationEmail(user) {
   return raw;
 }
 
-function checkStudentEmailDomain(email, domains) {
-  if (!domains?.length) return;
-  const domain = email.split('@')[1];
-  if (!domains.map((d) => d.toLowerCase()).includes(domain)) {
-    throw badRequest(`Please register with your college e-mail (${domains.join(', ')})`, 'EMAIL_DOMAIN_NOT_ALLOWED');
-  }
-}
-
-export async function registerStudent(data) {
-  const policies = await getAllPolicies();
-  const email = normalizeEmail(data.email);
-  checkStudentEmailDomain(email, policies.allowedStudentEmailDomains);
-  const department = normalizeDept(data.department);
-  if (policies.departments?.length && !policies.departments.map(normalizeDept).includes(department)) {
-    throw badRequest(`Department must be one of: ${policies.departments.join(', ')}`, 'DEPARTMENT_NOT_ALLOWED');
+export async function createStudentAccount({ actor, name, studentId, dateOfBirth, req }) {
+  const collegeId = studentId.trim();
+  const idPattern = new RegExp(`^${escapeRegex(collegeId)}$`, 'i');
+  if (await StudentProfile.exists({ studentId: idPattern })) {
+    throw conflict('This college ID is already registered', 'STUDENT_ID_EXISTS');
   }
 
-  if (await User.exists({ email })) throw conflict('An account with this email already exists', 'EMAIL_EXISTS');
-  if (await StudentProfile.exists({ studentId: new RegExp(`^${escapeRegex(data.studentId)}$`, 'i') })) throw conflict('This student ID is already registered', 'STUDENT_ID_EXISTS');
-  if (await StudentProfile.exists({ rollNumber: new RegExp(`^${escapeRegex(data.rollNumber)}$`, 'i') })) throw conflict('This roll number is already registered', 'ROLL_NUMBER_EXISTS');
-
-  const needVerify = policies.requireEmailVerification;
+  const internalEmail = `student.${crypto.createHash('sha256').update(collegeId.toLowerCase()).digest('hex')}@students.cpms.local`;
+  if (await User.exists({ email: internalEmail })) {
+    throw conflict('A student account for this college ID already exists', 'STUDENT_ID_EXISTS');
+  }
+  const password = dateOfBirth.toISOString().slice(0, 10);
   const user = await User.create({
-    name: data.name, email, passwordHash: await hashPassword(data.password), role: ROLES.STUDENT,
-    accountStatus: needVerify ? ACCOUNT_STATUS.PENDING_VERIFICATION : ACCOUNT_STATUS.ACTIVE,
+    name,
+    email: internalEmail,
+    passwordHash: await hashPassword(password),
+    role: ROLES.STUDENT,
+    accountStatus: ACCOUNT_STATUS.ACTIVE,
+    emailVerifiedAt: new Date(),
+    notificationPrefs: { email: false },
+    mustChangePassword: true,
+    mustCompleteProfile: true,
+    facultyProvisioned: true,
   });
+
   let profile;
   try {
     profile = await StudentProfile.create({
-      userId: user._id, studentId: data.studentId, rollNumber: data.rollNumber, department,
-      degree: data.degree || 'B.Tech', currentSemester: data.currentSemester, graduationYear: data.graduationYear, collegeName: data.collegeName,
+      userId: user._id,
+      studentId: collegeId,
+      rollNumber: `PENDING-${crypto.createHash('sha256').update(collegeId.toLowerCase()).digest('hex').slice(0, 32)}`,
+      personal: { dateOfBirth },
     });
   } catch (err) {
-    await User.deleteOne({ _id: user._id }); // keep user + profile consistent without needing transactions
+    await User.deleteOne({ _id: user._id });
     throw err;
   }
-  const devToken = needVerify ? await sendVerificationEmail(user) : undefined;
-  // NOTE: registering does NOT verify academic records - that is a separate TPO process.
-  return { user, profile, requiresEmailVerification: needVerify, devToken: config.exposeDevTokens ? devToken : undefined };
+  await audit({ actor, action: 'student.account_created', entityType: 'StudentProfile', entityId: profile._id, metadata: { studentId: collegeId }, req });
+  return { user, profile };
 }
 
 export async function registerRecruiter(data) {
@@ -113,13 +113,20 @@ export async function registerRecruiter(data) {
   return { user, company, membershipStatus, requiresEmailVerification: needVerify, devToken: config.exposeDevTokens ? devToken : undefined };
 }
 
-export async function login({ email, password, ip, userAgent }) {
+export async function login({ identifier, email, password, ip, userAgent }) {
   const policies = await getAllPolicies();
   const maxAttempts = policies.maxLoginAttempts || config.maxLoginAttempts;
   const lockoutMinutes = policies.lockoutMinutes || config.lockoutMinutes;
   const ttlHours = policies.sessionTtlHours || config.sessionTtlHours;
 
-  const user = await User.findOne({ email: normalizeEmail(email) }).select('+passwordHash +failedLoginCount +lockedUntil');
+  const loginId = String(identifier || email || '').trim();
+  let user;
+  if (loginId.includes('@')) {
+    user = await User.findOne({ email: normalizeEmail(loginId) }).select('+passwordHash +failedLoginCount +lockedUntil');
+  } else {
+    const profile = await StudentProfile.findOne({ studentId: new RegExp(`^${escapeRegex(loginId)}$`, 'i') }).select('userId');
+    if (profile) user = await User.findById(profile.userId).select('+passwordHash +failedLoginCount +lockedUntil');
+  }
   if (user?.lockedUntil && user.lockedUntil > new Date()) {
     throw new AppError(423, 'ACCOUNT_LOCKED', `Too many failed attempts. Try again in ${Math.ceil((user.lockedUntil - Date.now()) / 60000)} minute(s).`);
   }
@@ -136,6 +143,9 @@ export async function login({ email, password, ip, userAgent }) {
     throw unauthorized('Invalid email or password', 'INVALID_CREDENTIALS'); // same message for unknown e-mail and wrong password
   }
   if (user.accountStatus === ACCOUNT_STATUS.DEACTIVATED) throw forbidden('This account has been deactivated. Contact the placement cell.', 'ACCOUNT_DEACTIVATED');
+  if (user.role === ROLES.STUDENT && !user.facultyProvisioned) {
+    throw forbidden('This student account is no longer active. Ask faculty to create a new account.', 'STUDENT_ACCOUNT_DISABLED');
+  }
   if (user.accountStatus === ACCOUNT_STATUS.PENDING_VERIFICATION) throw forbidden('Please verify your e-mail address first. Check your inbox.', 'EMAIL_NOT_VERIFIED');
   if (user.accountStatus === ACCOUNT_STATUS.PENDING_ACTIVATION) throw forbidden('Your account was created by the placement cell. Use "Forgot password" to set your password first.', 'ACTIVATION_REQUIRED');
   if (policies.maintenanceMode && user.role !== ROLES.SUPER_ADMIN) throw new AppError(503, 'MAINTENANCE', 'The portal is under maintenance. Please try again later.');
@@ -217,6 +227,7 @@ export async function changePassword({ user, currentPassword, newPassword, curre
   if (currentPassword === newPassword) throw badRequest('New password must be different', 'SAME_PASSWORD');
   full.passwordHash = await hashPassword(newPassword);
   full.passwordChangedAt = new Date();
+  full.mustChangePassword = false;
   await full.save();
   await revokeAllSessions(user._id, currentJti);
 }

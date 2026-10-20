@@ -7,7 +7,7 @@ import { dt, label } from '../../lib/format.js';
 
 export default function Settings() {
   usePageTitle('Account settings');
-  const { user, refresh } = useAuth();
+  const { user, profile, refresh } = useAuth();
   const toast = useToast();
   const [name, setName] = useState(user.name);
   const [emailPref, setEmailPref] = useState(user.notificationPrefs?.email !== false);
@@ -32,10 +32,12 @@ export default function Settings() {
       <PageHeader title="Account settings" />
       <div className="grid grid-2">
         <Card title="Profile">
-          <KV items={[['E-mail', user.email], ['Role', label(user.role)], ['Last login', dt(user.lastLoginAt)]]} />
+          <KV items={user.role === 'student'
+            ? [['College ID', profile?.studentId], ['Role', label(user.role)], ['Last login', dt(user.lastLoginAt)]]
+            : [['E-mail', user.email], ['Role', label(user.role)], ['Last login', dt(user.lastLoginAt)]]} />
           <form onSubmit={saveProfile} style={{ marginTop: '1rem' }}>
             <Input label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
-            <div style={{ margin: '1rem 0' }}><Checkbox label="Also send important notifications by e-mail" checked={emailPref} onChange={(e) => setEmailPref(e.target.checked)} /></div>
+            {user.role !== 'student' && <div style={{ margin: '1rem 0' }}><Checkbox label="Also send important notifications by e-mail" checked={emailPref} onChange={(e) => setEmailPref(e.target.checked)} /></div>}
             <Button type="submit" variant="primary" loading={busy}>Save changes</Button>
           </form>
         </Card>

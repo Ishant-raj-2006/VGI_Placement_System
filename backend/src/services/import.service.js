@@ -163,6 +163,7 @@ export async function importStudents({ buffer, dryRun = true, createMissing = tr
           const user = await User.create({
             name: d.name, email: d.email, passwordHash: randomHash, role: ROLES.STUDENT,
             accountStatus: ACCOUNT_STATUS.PENDING_ACTIVATION,
+            facultyProvisioned: true,
           });
           try {
             await StudentProfile.create({

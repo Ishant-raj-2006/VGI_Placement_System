@@ -29,10 +29,10 @@ const studentProfileSchema = new mongoose.Schema(
     studentId: { type: String, required: true, trim: true, maxlength: 40 },
     rollNumber: { type: String, required: true, trim: true, maxlength: 40 },
     collegeName: { type: String, trim: true, maxlength: 200 },
-    degree: { type: String, trim: true, default: 'B.Tech', maxlength: 60 },
-    department: { type: String, required: true, trim: true, uppercase: true, maxlength: 40 },
+    degree: { type: String, trim: true, maxlength: 60 },
+    department: { type: String, trim: true, uppercase: true, maxlength: 40 },
     currentSemester: { type: Number, min: 1, max: 12 },
-    graduationYear: { type: Number, required: true, min: 2000, max: 2100 },
+    graduationYear: { type: Number, min: 2000, max: 2100 },
     personal: {
       contactNumber: { type: String, trim: true, maxlength: 20 },
       dateOfBirth: Date,

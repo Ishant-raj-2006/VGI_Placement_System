@@ -5,7 +5,7 @@ import { PageLoader } from './components/ui.jsx';
 
 import Landing from './pages/common/Landing.jsx';
 import Login from './pages/common/Login.jsx';
-import Register from './pages/common/Register.jsx';
+import FirstLogin from './pages/common/FirstLogin.jsx';
 import ForgotPassword from './pages/common/ForgotPassword.jsx';
 import ResetPassword from './pages/common/ResetPassword.jsx';
 import VerifyEmail from './pages/common/VerifyEmail.jsx';
@@ -47,6 +47,7 @@ import ROffers from './pages/recruiter/Offers.jsx';
 
 import ADashboard from './pages/admin/Dashboard.jsx';
 import AStudents from './pages/admin/Students.jsx';
+import AAddStudent from './pages/admin/AddStudent.jsx';
 import AStudentDetail from './pages/admin/StudentDetail.jsx';
 import AImport from './pages/admin/ImportStudents.jsx';
 import ADuplicates from './pages/admin/Duplicates.jsx';
@@ -67,8 +68,10 @@ function Guard({ roles }) {
   const { user, loading } = useAuth();
   const loc = useLocation();
   if (loading) return <PageLoader text="Loading your account…" />;
-  if (!user) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
+  if (!user) return <Navigate to={roles.includes('student') ? '/student-login' : '/faculty-login'} replace state={{ from: loc.pathname + loc.search }} />;
   if (!roles.includes(user.role)) return <NotFound forbidden />;
+  if (user.mustChangePassword && loc.pathname !== '/first-login') return <Navigate to="/first-login" replace />;
+  if (user.role === 'student' && user.mustCompleteProfile && loc.pathname !== '/student/profile') return <Navigate to="/student/profile" replace />;
   return <Layout />;
 }
 
@@ -83,8 +86,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={user ? <Navigate to={ROLE_HOME[user.role]} replace /> : <Register />} />
+      <Route path="/login" element={<Navigate to="/student-login" replace />} />
+      <Route path="/student-login" element={<Login mode="student" />} />
+      <Route path="/faculty-login" element={<Login mode="faculty" />} />
+      <Route path="/first-login" element={<FirstLogin />} />
+      <Route path="/register" element={<Navigate to="/student-login" replace />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
@@ -138,6 +144,7 @@ export default function App() {
         <Route path="recruitment" element={<RecruitmentMonitoring />} />
         <Route path="reports" element={<AReports />} />
         <Route path="students" element={<AStudents />} />
+        <Route path="students/new" element={<AAddStudent />} />
         <Route path="students/import" element={<AImport />} />
         <Route path="students/duplicates" element={<ADuplicates />} />
         <Route path="students/:id" element={<AStudentDetail />} />

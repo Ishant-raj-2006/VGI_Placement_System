@@ -40,8 +40,14 @@ const demoPdf = (title) => Buffer.from(`%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2
 
 async function mkUser({ name, email, password, role, status = 'active' }) {
   let u = await M.User.findOne({ email });
-  if (u) return u;
-  u = await M.User.create({ name, email, passwordHash: await hashPassword(password), role, accountStatus: status, emailVerifiedAt: new Date() });
+  if (u) {
+    if (role === 'student' && !u.facultyProvisioned) {
+      u.facultyProvisioned = true;
+      await u.save();
+    }
+    return u;
+  }
+  u = await M.User.create({ name, email, passwordHash: await hashPassword(password), role, accountStatus: status, emailVerifiedAt: new Date(), ...(role === 'student' ? { facultyProvisioned: true } : {}) });
   return u;
 }
 
