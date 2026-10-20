@@ -3,6 +3,7 @@ dist/
 .env
 .env.*
 !.env.example
+atlas-credentials.env
 backend/storage/*
 !backend/storage/.gitkeep
 backups/
