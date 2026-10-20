@@ -1,0 +1,16 @@
+export const APP_STATUSES = ['applied', 'under_review', 'shortlisted', 'assessment', 'interview', 'selected', 'offered', 'offer_accepted', 'offer_declined', 'rejected', 'withdrawn'];
+export const EMPLOYMENT_TYPES = ['full_time', 'internship', 'internship_with_ppo', 'graduate_trainee'];
+export const WORK_MODES = ['onsite', 'remote', 'hybrid'];
+export const COMPENSATION_KINDS = [{ value: 'annual_ctc', label: 'Annual CTC (per year)' }, { value: 'monthly_stipend', label: 'Monthly stipend (per month)' }];
+export const ROUND_TYPES = ['aptitude', 'coding', 'technical_interview', 'hr_interview', 'group_discussion', 'other'];
+export const ROUND_STATUS = ['planned', 'scheduled', 'in_progress', 'completed', 'cancelled'];
+export const PARTICIPANT_RESULT = ['pending', 'passed', 'failed', 'on_hold', 'absent'];
+export const INTERVIEW_MODES = ['online', 'offline', 'hybrid'];
+export const INTERVIEW_STATUS = ['scheduled', 'rescheduled', 'completed', 'cancelled', 'no_show'];
+export const OFFER_STATUSES = ['draft', 'issued', 'accepted', 'declined', 'withdrawn', 'expired'];
+export const COMPANY_STATUSES = ['pending', 'under_review', 'verified', 'rejected', 'suspended'];
+export const COMPANY_ROLES = ['owner', 'hr_manager', 'recruiter'];
+export const PROFILE_VERIFICATION = ['pending_verification', 'verified', 'correction_required'];
+export const TICKET_STATUS = ['open', 'in_progress', 'resolved', 'rejected'];
+export const TICKET_TYPES = ['complaint', 'correction_request', 'support', 'contact'];
+export const DEPARTMENTS = ['CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL', 'AI&DS', 'MBA', 'MCA'];

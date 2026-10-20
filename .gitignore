@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+backend/storage/*
+!backend/storage/.gitkeep
+backups/
+*.log
+.DS_Store
+e2e-shots/

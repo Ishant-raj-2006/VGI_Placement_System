@@ -1,0 +1,6 @@
+# Copy to docker-compose.override.yml for a local demo with dev conveniences (NOT for production).
+services:
+  app:
+    environment:
+      NODE_ENV: development
+      EXPOSE_DEV_TOKENS: "true"

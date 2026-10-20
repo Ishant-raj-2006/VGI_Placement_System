@@ -1,0 +1,11 @@
+{
+  "name": "cpms-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Optional browser tests: drives the real UI against a running, seeded instance.",
+  "scripts": {
+    "smoke": "node smoke.mjs",
+    "flow": "node flow.mjs"
+  },
+  "devDependencies": { "playwright": "^1.48.0" }
+}

@@ -1,0 +1,38 @@
+# One command to run everything locally:  docker compose up --build
+# Then open http://localhost:5000  (demo data only: docker compose exec app node scripts/seed.js --reset --force-production)
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo: { condition: service_healthy }
+    ports: ["5000:5000"]
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/campus_placement
+      # REQUIRED: set a long random value in your shell or .env file (docker compose reads .env automatically)
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to a random string of 32+ characters}
+      APP_URL: ${APP_URL:-http://localhost:5000}
+      CORS_ORIGINS: ${APP_URL:-http://localhost:5000}
+      STORAGE_DIR: /data/storage
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-CPMS <no-reply@college.edu>}
+    volumes: [storage:/data/storage]
+
+volumes:
+  mongo-data:
+  storage:
