@@ -9,8 +9,10 @@ import { config } from './config/env.js';
 import { sanitizeInput } from './middleware/sanitize.js';
 import { apiLimiter } from './middleware/rateLimit.js';
 import { notFoundHandler, errorHandler } from './middleware/error.js';
-import { dbState } from './config/db.js';
+import { dbState, ensureDbConnected } from './config/db.js';
+import { assertProductionConfig } from './config/env.js';
 import routes from './routes/index.js';
+import { logger } from './utils/logger.js';
 
 export function createApp() {
   const app = express();
@@ -43,6 +45,22 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false, limit: '50kb' }));
   app.use(sanitizeInput); // strips $-operators / dotted keys (NoSQL injection)
 
+  if (config.isVercel) {
+    app.use(async (_req, res, next) => {
+      try {
+        assertProductionConfig();
+        await ensureDbConnected();
+        next();
+      } catch (err) {
+        logger.error('Vercel request could not connect to required services', { message: err.message });
+        res.status(503).json({
+          success: false,
+          error: { code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable.' },
+        });
+      }
+    });
+  }
+
   app.get('/health', (_req, res) => {
     const db = dbState();
     res.status(db === 'connected' ? 200 : 503).json({ status: db === 'connected' ? 'ok' : 'degraded', database: db, time: new Date().toISOString() });
@@ -61,3 +79,7 @@ export function createApp() {
   app.use(errorHandler);
   return app;
 }
+
+const app = createApp();
+
+export default app;

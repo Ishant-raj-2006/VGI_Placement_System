@@ -25,10 +25,12 @@ function getMongoUri() {
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProd = nodeEnv === 'production';
+const isVercel = bool(process.env.VERCEL);
 
 export const config = {
   nodeEnv,
   isProd,
+  isVercel,
   isTest: nodeEnv === 'test',
   port: int(process.env.PORT, 5000),
   appUrl: process.env.APP_URL || 'http://localhost:5173',
@@ -38,6 +40,7 @@ export const config = {
     .filter(Boolean),
   mongoUri: getMongoUri(),
   mongoAutoIndex: bool(process.env.MONGO_AUTO_INDEX, true),
+  mongoMaxPoolSize: int(process.env.MONGO_MAX_POOL_SIZE, process.env.VERCEL ? 5 : 20),
   jwtSecret: process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me',
   sessionTtlHours: int(process.env.SESSION_TTL_HOURS, 12),
   bcryptRounds: int(process.env.BCRYPT_ROUNDS, isProd ? 12 : 10),
@@ -53,8 +56,8 @@ export const config = {
     driver: process.env.STORAGE_DRIVER || 'local',
     dir: path.resolve(backendRoot, process.env.STORAGE_DIR || './storage'),
     maxResumeBytes: int(process.env.MAX_RESUME_MB, 2) * 1024 * 1024,
-    maxOfferDocBytes: int(process.env.MAX_OFFER_DOC_MB, 5) * 1024 * 1024,
-    maxImportBytes: int(process.env.MAX_IMPORT_MB, 5) * 1024 * 1024,
+    maxOfferDocBytes: int(process.env.MAX_OFFER_DOC_MB, process.env.VERCEL ? 4 : 5) * 1024 * 1024,
+    maxImportBytes: int(process.env.MAX_IMPORT_MB, process.env.VERCEL ? 4 : 5) * 1024 * 1024,
     maxPhotoBytes: 1024 * 1024,
   },
   smtp: {
@@ -69,7 +72,7 @@ export const config = {
   exposeDevTokens: bool(process.env.EXPOSE_DEV_TOKENS, false) && !isProd,
   // Built React app to serve from this process. Set SERVE_FRONTEND=false to disable (e.g. when nginx serves it).
   frontendDist: bool(process.env.SERVE_FRONTEND, true) ? path.resolve(backendRoot, process.env.FRONTEND_DIST || '../frontend/dist') : null,
-  jobsEnabled: bool(process.env.JOBS_ENABLED, true),
+  jobsEnabled: bool(process.env.JOBS_ENABLED, !isVercel) && !isVercel,
   backendRoot,
 };
 
@@ -80,6 +83,13 @@ export function assertProductionConfig() {
     problems.push('JWT_SECRET must be set to a random string of at least 32 characters');
   }
   if (!process.env.MONGODB_URI) problems.push('MONGODB_URI must be set');
+  if (!['local', 'vercel-blob'].includes(config.storage.driver)) problems.push('STORAGE_DRIVER must be local or vercel-blob');
+  if (
+    config.storage.driver === 'vercel-blob' &&
+    !((process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID) || process.env.BLOB_READ_WRITE_TOKEN)
+  ) {
+    problems.push('Vercel Blob requires a connected Blob store or BLOB_READ_WRITE_TOKEN');
+  }
   if (process.env.EXPOSE_DEV_TOKENS && bool(process.env.EXPOSE_DEV_TOKENS)) problems.push('EXPOSE_DEV_TOKENS must not be enabled in production');
   if (problems.length) {
     throw new Error(`Invalid production configuration:\n - ${problems.join('\n - ')}`);

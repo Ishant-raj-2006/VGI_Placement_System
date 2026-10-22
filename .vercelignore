@@ -1,0 +1,10 @@
+atlas-credentials.env
+.env
+.env.*
+**/.env
+**/.env.*
+**/node_modules
+backend/storage/**
+backups/**
+e2e-shots/**
+*.log

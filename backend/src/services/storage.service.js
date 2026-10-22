@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
+import { BlobNotFoundError, del, get, head, put } from '@vercel/blob';
 import { config } from '../config/env.js';
 
 /**
@@ -23,17 +25,34 @@ function resolveKey(key) {
 export async function saveFile(folder, buffer, ext = '') {
   const safeFolder = folder.replace(/[^a-z0-9_-]/gi, '');
   const key = `${safeFolder}/${crypto.randomUUID()}${ext}`;
+  if (config.storage.driver === 'vercel-blob') {
+    const blob = await put(key, buffer, { access: 'private', addRandomSuffix: false });
+    return blob.pathname;
+  }
   const full = resolveKey(key);
   await fs.mkdir(path.dirname(full), { recursive: true, mode: 0o700 });
   await fs.writeFile(full, buffer, { mode: 0o600 });
   return key;
 }
 
-export function openStream(key) {
+export async function openStream(key) {
+  if (config.storage.driver === 'vercel-blob') {
+    const blob = await get(key, { access: 'private' });
+    if (!blob || blob.statusCode !== 200 || !blob.stream) return null;
+    return Readable.fromWeb(blob.stream);
+  }
   return createReadStream(resolveKey(key));
 }
 
 export async function deleteFile(key) {
+  if (config.storage.driver === 'vercel-blob') {
+    try {
+      await del(key);
+    } catch (err) {
+      if (!(err instanceof BlobNotFoundError)) throw err;
+    }
+    return;
+  }
   try {
     await fs.unlink(resolveKey(key));
   } catch (e) {
@@ -42,6 +61,15 @@ export async function deleteFile(key) {
 }
 
 export async function exists(key) {
+  if (config.storage.driver === 'vercel-blob') {
+    try {
+      await head(key, { access: 'private' });
+      return true;
+    } catch (err) {
+      if (err instanceof BlobNotFoundError) return false;
+      throw err;
+    }
+  }
   try {
     await fs.access(resolveKey(key));
     return true;

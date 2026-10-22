@@ -88,11 +88,13 @@ fileRouter.use(authenticate);
 
 async function streamFile(res, key, name, mime, inline = false) {
   if (!key || !(await storage.exists(key))) throw notFound('File not found');
+  const stream = await storage.openStream(key);
+  if (!stream) throw notFound('File not found');
   res.setHeader('Content-Type', mime || 'application/octet-stream');
   res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(name || 'file')}"`);
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  storage.openStream(key).on('error', () => res.destroy()).pipe(res);
+  stream.on('error', () => res.destroy()).pipe(res);
 }
 
 /** Who may see a student's resume/photo? The student, TPO/Super Admin, or a recruiter whose company has an application from that student. */
