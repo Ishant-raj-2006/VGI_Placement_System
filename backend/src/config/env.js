@@ -2,13 +2,26 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const backendRoot = path.resolve(__dirname, '..', '..');
 
+dotenv.config({ path: path.resolve(backendRoot, '..', 'atlas-credentials.env') });
+dotenv.config({ path: path.resolve(backendRoot, '.env') });
+
 const bool = (v, d = false) => (v === undefined || v === '' ? d : ['1', 'true', 'yes', 'on'].includes(String(v).toLowerCase()));
 const int = (v, d) => (v === undefined || v === '' || Number.isNaN(Number(v)) ? d : parseInt(v, 10));
+
+function getMongoUri() {
+  const uri = new URL(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/campus_placement');
+  if (!uri.pathname || uri.pathname === '/') uri.pathname = '/campus_placement';
+  if (uri.protocol === 'mongodb+srv:') {
+    if (!uri.username && process.env.MONGODB_USERNAME) uri.username = process.env.MONGODB_USERNAME;
+    if (!uri.password && process.env.MONGODB_PASSWORD) uri.password = process.env.MONGODB_PASSWORD;
+    if (!uri.searchParams.has('retryWrites')) uri.searchParams.set('retryWrites', 'true');
+    if (!uri.searchParams.has('w')) uri.searchParams.set('w', 'majority');
+  }
+  return uri.toString();
+}
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProd = nodeEnv === 'production';
@@ -23,7 +36,7 @@ export const config = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
-  mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/campus_placement',
+  mongoUri: getMongoUri(),
   mongoAutoIndex: bool(process.env.MONGO_AUTO_INDEX, true),
   jwtSecret: process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me',
   sessionTtlHours: int(process.env.SESSION_TTL_HOURS, 12),
