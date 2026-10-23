@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "https://vgi-placement-api.vercel.app/api/v1/:path*"
+      "destination": "https://cpms-api-4hjt.onrender.com/api/v1/:path*"
     },
     {
       "source": "/(.*)",
