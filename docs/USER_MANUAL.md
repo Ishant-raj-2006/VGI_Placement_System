@@ -5,7 +5,7 @@ Open the application URL (local: http://localhost:5173, or http://localhost:5000
 ---
 ## Students (`/student`)
 
-1. **First login** — enter the college ID and the temporary date-of-birth password; choose a new password when prompted. Complete your name and academic details (degree, department/branch, graduation year, current year/semester) in *Profile* before using other student pages.
+1. **First login** — choose **Date of birth (first login)**, enter the college ID and select your date of birth; choose a new password when prompted. On later logins, choose **Password (after first login)**. Complete your name and academic details (degree, department/branch, graduation year, current year/semester) in *Profile* before using other student pages.
 2. **Complete your profile** — add your name and academic details in *Profile*, and upload your resume there (PDF or DOCX, up to 2 MB; max 5). Continue with *Academic records* (10th, 12th/diploma, each semester), *Skills*, *Experience*, and *Projects*. The completion bar shows what is missing.
 3. **Get verified** — *Verification* shows your status. The placement cell checks your academic records against official data. Until you are **verified**, drives whose rules depend on academic data show **Pending verification**. If something is rejected, correct it and the record is re-checked. Editing verified academic data re-opens verification.
 4. **Find drives** — *Drives* lists published drives with your result for each: **Eligible**, **Ineligible** (with exact reasons, e.g. "CGPA 6.8 is below the minimum 7") or **Pending verification**. Open a drive to see role, pay, rounds, deadline and the full check list.

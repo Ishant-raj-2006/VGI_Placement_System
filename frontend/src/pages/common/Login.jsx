@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth, ROLE_HOME } from '../../lib/auth.jsx';
-import { Alert, Button, Card, Input } from '../../components/ui.jsx';
+import { Alert, Button, Card, Input, Select } from '../../components/ui.jsx';
 import { usePageTitle } from '../../lib/hooks.js';
 
 export default function Login({ mode = 'student' }) {
@@ -11,6 +11,7 @@ export default function Login({ mode = 'student' }) {
   const { user, login, logout } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ identifier: '', password: '' });
+  const [studentLoginMethod, setStudentLoginMethod] = useState('dateOfBirth');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   if (user) return <Navigate to={user.mustChangePassword ? '/first-login' : user.mustCompleteProfile ? '/student/profile' : ROLE_HOME[user.role]} replace />;
@@ -36,11 +37,45 @@ export default function Login({ mode = 'student' }) {
       <div className="auth-card stack">
         <Link to="/" className="brand" style={{ color: 'var(--text)' }}><img className="brand-logo" src="/logo.png" alt="" /> CPMS</Link>
         <Card title={isStudentPanel ? 'Student login' : 'Faculty login'}>
-          <form onSubmit={submit} className="stack-sm" noValidate>
+          <form onSubmit={submit} className="stack-sm">
             {error && <Alert kind="error">{error.message}{error.code === 'EMAIL_NOT_VERIFIED' && <> <Link to="/verify-email">Verify your e-mail</Link></>}</Alert>}
-            {isStudentPanel && <Alert kind="info">Use the College ID provided by your faculty. Your temporary password is your date of birth in YYYY-MM-DD format; you will set a private password at first login.</Alert>}
+            {isStudentPanel && <Alert kind="info">For your first login, choose date of birth and enter the DOB given to your faculty in the form. After setting a private password, choose password for future logins.</Alert>}
             <Input label={isStudentPanel ? 'College ID' : 'Faculty / recruiter e-mail'} type={isStudentPanel ? 'text' : 'email'} autoComplete="username" required value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
-            <Input label="Password" type="password" autoComplete="current-password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            {isStudentPanel && (
+              <Select
+                label="Login with"
+                options={[
+                  { value: 'dateOfBirth', label: 'Date of birth (first login)' },
+                  { value: 'password', label: 'Password (after first login)' },
+                ]}
+                value={studentLoginMethod}
+                onChange={(e) => {
+                  setStudentLoginMethod(e.target.value);
+                  setForm({ ...form, password: '' });
+                }}
+              />
+            )}
+            {isStudentPanel && studentLoginMethod === 'dateOfBirth' ? (
+              <Input
+                label="Date of birth"
+                type="date"
+                autoComplete="bday"
+                required
+                max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)}
+                hint="Use the date of birth provided by your faculty."
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+            ) : (
+              <Input
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+            )}
             <Button type="submit" variant="primary" loading={busy} className="btn-block">Log in</Button>
           </form>
           {!isStudentPanel && <p className="small" style={{ marginTop: '1rem' }}><Link to="/forgot-password">Forgot password?</Link></p>}
