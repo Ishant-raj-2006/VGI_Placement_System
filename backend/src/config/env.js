@@ -83,7 +83,7 @@ export function assertProductionConfig() {
     problems.push('JWT_SECRET must be set to a random string of at least 32 characters');
   }
   if (!process.env.MONGODB_URI) problems.push('MONGODB_URI must be set');
-  if (!['local', 'vercel-blob'].includes(config.storage.driver)) problems.push('STORAGE_DRIVER must be local or vercel-blob');
+  if (!['local', 'mongodb', 'vercel-blob'].includes(config.storage.driver)) problems.push('STORAGE_DRIVER must be local, mongodb, or vercel-blob');
   if (
     config.storage.driver === 'vercel-blob' &&
     !((process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID) || process.env.BLOB_READ_WRITE_TOKEN)

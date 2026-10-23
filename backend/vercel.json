@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "/api/dispatch?__path=/api/v1/:path*"
+    }
+  ],
   "functions": {
     "api/cron.js": {
       "maxDuration": 60

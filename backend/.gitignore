@@ -9,3 +9,6 @@ backups/
 e2e-shots/
 storage/*
 !storage/.gitkeep
+
+.vercel
+.env.local

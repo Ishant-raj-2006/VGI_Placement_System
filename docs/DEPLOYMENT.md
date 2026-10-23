@@ -30,7 +30,7 @@ Deploy the frontend and API as **two Vercel projects** from the same Git reposit
 
 ### Backend project
 
-1. Import the repository in Vercel and set **Root Directory** to `backend`. Use the **Other** framework preset, `npm ci` as the install command, and leave the output directory empty. `backend/api/[...path].js` forwards API requests to Express, `backend/api/cron.js` handles scheduled maintenance, and `backend/vercel.json` configures the function and cron schedule.
+1. Import the repository in Vercel and set **Root Directory** to `backend`. Use the **Other** framework preset, `npm ci` as the install command, and leave the output directory empty. `backend/vercel.json` rewrites `/api/v1/*` to the Express dispatcher at `backend/api/dispatch.js`; `backend/api/cron.js` handles scheduled maintenance.
 2. Create a **private** Vercel Blob store and connect it to this backend project. Vercel should provide OIDC credentials automatically; alternatively set `BLOB_READ_WRITE_TOKEN` as a backend environment variable.
 3. Set these backend environment variables in Vercel (Production and any Preview environment you intend to use):
 
@@ -56,8 +56,8 @@ The scheduled endpoint processes queued e-mails, offer maintenance, and expired 
 ### Frontend project
 
 1. Create a second Vercel project from the same repository, with **Root Directory** set to `frontend`. Use the Vite preset, build command `npm run build`, and output directory `dist`.
-2. Set `VITE_API_BASE_URL` to the backend project's production origin, e.g. `https://cpms-api.vercel.app` (no `/api/v1` suffix). This is a build-time variable; redeploy after changing it.
-3. Set `APP_URL` and `CORS_ORIGINS` on the backend project to this frontend's exact production origin. Redeploy the backend after changing CORS values.
+2. `frontend/vercel.json` proxies `/api/v1/*` requests to the backend project before applying the SPA fallback. If you use a different backend domain, update that rewrite destination and redeploy.
+3. Set `APP_URL` on the backend project to this frontend's production origin. Browser requests remain same-origin through Vercel's proxy, so the frontend does not need `VITE_API_BASE_URL`.
 
 The frontend's `vercel.json` rewrites client-side routes to `index.html`. Check the API at `https://<backend-project>.vercel.app/api/v1/health`.
 
@@ -67,7 +67,13 @@ In MongoDB Atlas, allow network access from the Vercel backend. Vercel Hobby doe
 
 Run `npm run sync-indexes` and `node scripts/createSuperAdmin.js "Admin Name" admin@example.edu 'LongStrongPassword!'` from a trusted local environment configured with the production database URI. Do not run `seed:reset` against production. Existing files in the old local `backend/storage` are not copied automatically; migrate any files still referenced in MongoDB to the private Blob store before switching `STORAGE_DRIVER`.
 
-## 5. Production environment variables
+## 5. Render API with Atlas IP allowlisting
+
+Use this when MongoDB Atlas must allowlist a stable API egress address. The root `render.yaml` defines an always-on Starter web service. Create the Blueprint from this repository in Render and set `MONGODB_URI` to the Atlas URI for the `campus_placement` database. Render generates `JWT_SECRET` for the service. Application records and uploaded files (resumes, photos, and offer documents) are stored in MongoDB; files use the `cpmsFiles` GridFS bucket.
+
+For exclusive fixed outbound IPs, Render requires a Pro workspace and a dedicated outbound IP set. Create the IP set in the same region as the API service, then add all assigned addresses to MongoDB Atlas → Network Access. Do not use `0.0.0.0/0` for production. After the service is live, point the frontend's `/api/v1/*` rewrite in `frontend/vercel.json` at its Render URL and redeploy the frontend.
+
+## 6. Production environment variables
 | Variable | Required | Notes |
 |---|---|---|
 | `NODE_ENV=production` | yes | enables production guards |
@@ -77,25 +83,25 @@ Run `npm run sync-indexes` and `node scripts/createSuperAdmin.js "Admin Name" ad
 | `CORS_ORIGINS` | if UI on another origin | comma-separated allow-list |
 | `SMTP_HOST/PORT/SECURE/USER/PASS`, `MAIL_FROM` | for e-mail | without SMTP, mails stay queued/logged |
 | `EXPOSE_DEV_TOKENS` | **must be false** | returns reset/verify tokens in API responses for development only; production start fails if true |
-| `STORAGE_DRIVER` | Vercel: yes | use `vercel-blob` with a private Blob store; use `local` only with durable local storage |
+| `STORAGE_DRIVER` | optional | `mongodb` stores private file contents in MongoDB GridFS; `vercel-blob` uses a private Blob store; `local` is for development |
 | `CRON_SECRET` | Vercel: yes | protects the scheduled maintenance endpoint |
 | `JOBS_ENABLED` | Vercel: `false` | interval timers do not run reliably in serverless functions |
 | `MONGO_MAX_POOL_SIZE` | optional | defaults to 5 on Vercel and 20 elsewhere |
 | `SESSION_TTL_HOURS`, `MAX_LOGIN_ATTEMPTS`, `LOCKOUT_MINUTES`, `BCRYPT_ROUNDS`, `RATE_LIMIT_*` | optional | defaults are sensible; policies in the admin UI can override session/lockout values |
 | `MAX_RESUME_MB`, `MAX_OFFER_DOC_MB`, `MAX_IMPORT_MB` | optional | upload limits |
 
-## 6. Hardening checklist
+## 7. Hardening checklist
 * HTTPS only; HSTS at the proxy; set the proxy so the app sees the real client IP (`trust proxy` is configured for one hop).
 * Never run `npm run seed` / `seed:reset` against production (it refuses without `--force-production`).
 * MongoDB: auth enabled, network-restricted, TLS, least-privilege app user.
 * Keep `.env` out of version control; rotate `JWT_SECRET` to sign everyone out.
 * Antivirus scanning of uploads can be added at the storage service boundary if your policy requires it.
 
-## 7. Backups & restore
+## 8. Backups & restore
 * `npm run backup` (in `backend`) writes JSON dumps of all collections to `./backups`; prefer mongodump/Atlas snapshots for production. Back up Vercel Blob files separately.
 * Test a restore into a scratch database before relying on backups.
 
-## 8. Operations
+## 9. Operations
 * Liveness: `GET /api/v1/health` (503 when DB is down). Super Admin → *System* shows health, queue depth and failed e-mails.
 * Logs: structured to stdout (HTTP access log + app events); ship them with your platform's collector.
 * Scaling: API functions are stateless; sessions are stored in MongoDB and private uploads in Vercel Blob. Scheduled maintenance runs through the protected Vercel Cron endpoint.
