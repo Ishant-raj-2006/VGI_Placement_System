@@ -43,8 +43,9 @@ describe('Authentication & registration', () => {
   it('faculty creates a student who must change the DOB password and complete their profile', async () => {
     const studentId = 'ONBOARD-001';
     const dateOfBirth = '2005-09-10';
-    const created = await tpo.post('/admin/students', { name: 'Onboard Student', studentId, dateOfBirth });
+    const created = await tpo.post('/admin/students', { studentId, dateOfBirth });
     assert.equal(created.status, 201, JSON.stringify(created.body));
+    assert.equal(created.body.data.student.name, 'Student');
     const login = await t.api.post('/api/v1/auth/login').send({ identifier: studentId, password: dateOfBirth });
     assert.equal(login.status, 200, JSON.stringify(login.body));
     assert.equal(login.body.data.user.mustChangePassword, true);
@@ -55,7 +56,10 @@ describe('Authentication & registration', () => {
     const changed = await student.post('/auth/change-password', { currentPassword: dateOfBirth, newPassword: 'N3w@Passw0rd' });
     assert.equal(changed.status, 200, JSON.stringify(changed.body));
     assert.equal((await student.get('/student/drives')).status, 403);
-    const profile = await student.put('/student/profile', { rollNumber: 'ONBOARD-ROLL-001', degree: 'B.Tech', department: 'CSE', graduationYear: new Date().getFullYear() + 1, currentSemester: 1 });
+    const incompleteProfile = await student.put('/student/profile', { rollNumber: 'ONBOARD-ROLL-001', degree: 'B.Tech', department: 'CSE', graduationYear: new Date().getFullYear() + 1, currentSemester: 1 });
+    assert.equal(incompleteProfile.status, 400);
+    assert.equal(incompleteProfile.body.error.code, 'PROFILE_INCOMPLETE');
+    const profile = await student.put('/student/profile', { name: 'Onboard Student', rollNumber: 'ONBOARD-ROLL-001', degree: 'B.Tech', department: 'CSE', graduationYear: new Date().getFullYear() + 1, currentSemester: 1 });
     assert.equal(profile.status, 200, JSON.stringify(profile.body));
     assert.equal(profile.body.data.user.mustCompleteProfile, false);
     assert.equal((await student.get('/student/profile')).status, 200);

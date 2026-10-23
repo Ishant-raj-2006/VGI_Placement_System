@@ -17,7 +17,7 @@ const NAV = {
   ],
   admin: [
     ['Overview', [['/admin', 'Dashboard', true], ['/admin/recruitment', 'Recruitment monitoring'], ['/admin/reports', 'Reports & analytics']]],
-    ['Approvals', [['/admin/drives/pending', 'Drive approvals', false, 'pendingDrives'], ['/admin/companies', 'Companies'], ['/admin/students', 'Students'], ['/admin/students/import', 'Import students']]],
+    ['Approvals', [['/admin/drives/pending', 'Drive approvals', false, 'pendingDrives'], ['/admin/companies', 'Companies'], ['/admin/students', 'Students'], ['/admin/students/new', 'Add student'], ['/admin/students/import', 'Import students']]],
     ['Monitoring', [['/admin/drives', 'All drives'], ['/admin/applications', 'Applications'], ['/admin/offers', 'Offers']]],
     ['Governance', [['/admin/policies', 'Policies'], ['/admin/tickets', 'Tickets & complaints'], ['/admin/audit-logs', 'Audit logs']]],
     ['Account', [['/admin/notifications', 'Notifications', false, 'bell'], ['/admin/settings', 'Account settings']]],

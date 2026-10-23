@@ -88,7 +88,7 @@ adminRouter.get(
 
 adminRouter.post(
   '/students',
-  validate({ body: z.object({ name: zReqText(120), studentId: zReqText(40), dateOfBirth: zDate.min(new Date('1900-01-01')).max(new Date()) }) }),
+  validate({ body: z.object({ name: zReqText(120).optional(), studentId: zReqText(40), dateOfBirth: zDate.min(new Date('1900-01-01')).max(new Date()) }) }),
   asyncHandler(async (req, res) => {
     const result = await authSvc.createStudentAccount({ actor: req.user, ...req.body, req });
     return created(res, {

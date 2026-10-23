@@ -45,7 +45,9 @@ export default function Profile() {
   const f = useForm({});
   const [loadedId, setLoadedId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [resumeBusy, setResumeBusy] = useState(false);
   const [error, setError] = useState(null);
+  const resumeInput = useRef(null);
   const d = state.data;
   const departmentOptions = getDepartmentOptions(f.values.degree);
   const degreeOptions = f.values.degree && !DEGREE_OPTIONS.some((option) => option.value === f.values.degree)
@@ -91,6 +93,21 @@ export default function Profile() {
       state.reload(); refresh();
     } catch (err) { setError(err); f.setErrors(err.fieldErrors); } finally { setBusy(false); }
   };
+  const uploadResume = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResumeBusy(true);
+    try {
+      await api.upload('/student/resumes', file);
+      toast.success('Resume uploaded');
+      state.reload();
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setResumeBusy(false);
+      e.target.value = '';
+    }
+  };
 
   return (
     <>
@@ -100,6 +117,18 @@ export default function Profile() {
           <>
             <Card title="Profile completion"><ProgressBar value={data.completion.percentage} label="Profile completion" />{data.completion.missing.length > 0 && <p className="small muted" style={{ marginTop: '.5rem' }}>Missing: {data.completion.missing.map(label).join(', ')}</p>}</Card>
             <Card title="Photo"><Photo profileId={data.profile._id} has={data.hasPhoto} onChange={state.reload} /></Card>
+            <Card title="Resume">
+              <p className="muted">Upload a PDF or DOCX resume (up to 2 MB). The placement cell and recruiters for drives you apply to can access it.</p>
+              <input ref={resumeInput} type="file" hidden accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={uploadResume} aria-label="Choose resume file" />
+              {data.resumes?.length > 0 ? (
+                <div className="stack-sm">
+                  <p>{data.resumes.length} resume{data.resumes.length === 1 ? '' : 's'} uploaded. Most recent: <strong>{data.resumes[0].originalName}</strong></p>
+                  <a className="btn" href="/student/resumes">Manage resumes</a>
+                </div>
+              ) : <p className="muted">No resume uploaded yet.</p>}
+              {data.resumes?.length >= 5 && <p className="hint">You have reached the limit of 5 resumes. Manage existing resumes to make room for another.</p>}
+              <div className="form-actions"><Button variant="primary" loading={resumeBusy} disabled={data.resumes?.length >= 5} onClick={() => resumeInput.current?.click()}>Upload resume</Button></div>
+            </Card>
             <Card title="Details">
               {error && <Alert kind="error">{error.message}</Alert>}
               <Alert kind="info">College ID <strong>{data.profile.studentId}</strong> is your login ID and cannot be changed. Add your roll number below; once saved, only the placement cell can change it. Changing department or graduation year re-opens academic verification.</Alert>

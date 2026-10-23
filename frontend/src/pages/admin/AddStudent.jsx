@@ -7,7 +7,7 @@ import { Alert, Button, Card, Input, PageHeader } from '../../components/ui.jsx'
 export default function AddStudent() {
   usePageTitle('Add student');
   const nav = useNavigate();
-  const f = useForm({ name: '', studentId: '', dateOfBirth: '' });
+  const f = useForm({ studentId: '', dateOfBirth: '' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [createdStudent, setCreatedStudent] = useState(null);
@@ -35,9 +35,9 @@ export default function AddStudent() {
       <Card title={createdStudent ? 'Student account created' : 'Student details'}>
         {createdStudent ? (
           <div className="stack">
-            <Alert kind="success">Student account created for {createdStudent.name}.</Alert>
+            <Alert kind="success">Student account created for College ID {createdStudent.studentId}.</Alert>
             <p>Student login ID: <strong>{createdStudent.studentId}</strong></p>
-            <p>Temporary password: the student's date of birth in <strong>YYYY-MM-DD</strong> format. The student must change it at first login, then complete their profile.</p>
+            <p>Temporary password: the student's date of birth in <strong>YYYY-MM-DD</strong> format. The student must change it at first login, then add their name, academic details, and resume to their profile.</p>
             <div className="form-actions">
               <Button variant="primary" onClick={() => nav('/admin/students')}>Back to students</Button>
               <Button onClick={() => { setCreatedStudent(null); f.reset(); }}>Add another student</Button>
@@ -46,10 +46,9 @@ export default function AddStudent() {
         ) : (
           <>
             {error && <Alert kind="error">{error.message}</Alert>}
-            <Alert kind="info">The student will sign in with their college ID. Their date of birth is the temporary password and must be changed at first login.</Alert>
+            <Alert kind="info">Enter the College ID and date of birth from the institution's verified records. The student signs in with the College ID and date of birth (YYYY-MM-DD), changes the temporary password, then fills in their name, academic details, and resume.</Alert>
             <form onSubmit={submit} className="stack-sm">
-              <Input label="Student name" required maxLength="120" autoComplete="name" {...f.bind('name')} />
-              <Input label="College ID" required maxLength="40" {...f.bind('studentId')} />
+              <Input label="College ID" required maxLength="40" autoComplete="off" {...f.bind('studentId')} />
               <Input label="Date of birth" type="date" required min="1900-01-01" max={today} {...f.bind('dateOfBirth')} />
               <div className="form-actions"><Button type="submit" variant="primary" loading={busy}>Create student account</Button></div>
             </form>

@@ -34,6 +34,7 @@ async function sendVerificationEmail(user) {
 
 export async function createStudentAccount({ actor, name, studentId, dateOfBirth, req }) {
   const collegeId = studentId.trim();
+  const studentName = name?.trim() || 'Student';
   const idPattern = new RegExp(`^${escapeRegex(collegeId)}$`, 'i');
   if (await StudentProfile.exists({ studentId: idPattern })) {
     throw conflict('This college ID is already registered', 'STUDENT_ID_EXISTS');
@@ -45,7 +46,7 @@ export async function createStudentAccount({ actor, name, studentId, dateOfBirth
   }
   const password = dateOfBirth.toISOString().slice(0, 10);
   const user = await User.create({
-    name,
+    name: studentName,
     email: internalEmail,
     passwordHash: await hashPassword(password),
     role: ROLES.STUDENT,

@@ -79,7 +79,9 @@ const profileUpdate = z.object({
 studentRouter.put('/profile', validate({ body: profileUpdate }), asyncHandler(async (req, res) => {
   const b = req.body;
   const p = req.profile;
+  const profileName = b.name || req.user.name;
   if (req.user.mustCompleteProfile && !(
+    (profileName && profileName !== 'Student') &&
     (b.rollNumber || (p.rollNumber && !p.rollNumber.startsWith('PENDING-'))) &&
     (b.department || p.department) &&
     (b.degree || p.degree) &&
@@ -133,7 +135,7 @@ studentRouter.put('/profile', validate({ body: profileUpdate }), asyncHandler(as
   await p.save();
   req.profile = p;
   const user = await User.findById(req.user._id);
-  if (user.mustCompleteProfile && user.name && p.rollNumber && !p.rollNumber.startsWith('PENDING-') && p.degree && p.department && p.graduationYear && p.currentSemester) {
+  if (user.mustCompleteProfile && user.name && user.name !== 'Student' && p.rollNumber && !p.rollNumber.startsWith('PENDING-') && p.degree && p.department && p.graduationYear && p.currentSemester) {
     user.mustCompleteProfile = false;
     await user.save();
   }

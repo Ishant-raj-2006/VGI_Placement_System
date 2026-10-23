@@ -38,6 +38,7 @@ export default function Login({ mode = 'student' }) {
         <Card title={isStudentPanel ? 'Student login' : 'Faculty login'}>
           <form onSubmit={submit} className="stack-sm" noValidate>
             {error && <Alert kind="error">{error.message}{error.code === 'EMAIL_NOT_VERIFIED' && <> <Link to="/verify-email">Verify your e-mail</Link></>}</Alert>}
+            {isStudentPanel && <Alert kind="info">Use the College ID provided by your faculty. Your temporary password is your date of birth in YYYY-MM-DD format; you will set a private password at first login.</Alert>}
             <Input label={isStudentPanel ? 'College ID' : 'Faculty / recruiter e-mail'} type={isStudentPanel ? 'text' : 'email'} autoComplete="username" required value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
             <Input label="Password" type="password" autoComplete="current-password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
             <Button type="submit" variant="primary" loading={busy} className="btn-block">Log in</Button>
