@@ -67,11 +67,13 @@ In MongoDB Atlas, allow network access from the Vercel backend. Vercel Hobby doe
 
 Run `npm run sync-indexes` and `node scripts/createSuperAdmin.js "Admin Name" admin@example.edu 'LongStrongPassword!'` from a trusted local environment configured with the production database URI. Do not run `seed:reset` against production. Existing files in the old local `backend/storage` are not copied automatically; migrate any files still referenced in MongoDB to the private Blob store before switching `STORAGE_DRIVER`.
 
-## 5. Render API with Atlas IP allowlisting
+## 5. Free Render API with MongoDB Atlas
 
-Use this when MongoDB Atlas must allowlist a stable API egress address. The root `render.yaml` defines an always-on Starter web service. Create the Blueprint from this repository in Render and set `MONGODB_URI` to the Atlas URI for the `campus_placement` database. Render generates `JWT_SECRET` for the service. Application records and uploaded files (resumes, photos, and offer documents) are stored in MongoDB; files use the `cpmsFiles` GridFS bucket.
+The root `render.yaml` defines a free Render web service. Create the Blueprint from this repository and set `MONGODB_URI` to the Atlas URI for the `campus_placement` database. Render generates `JWT_SECRET`. Application records and uploaded files (resumes, photos, and offer documents) are stored in MongoDB; files use the `cpmsFiles` GridFS bucket.
 
-For exclusive fixed outbound IPs, Render requires a Pro workspace and a dedicated outbound IP set. Create the IP set in the same region as the API service, then add all assigned addresses to MongoDB Atlas → Network Access. Do not use `0.0.0.0/0` for production. After the service is live, point the frontend's `/api/v1/*` rewrite in `frontend/vercel.json` at its Render URL and redeploy the frontend.
+Free Render services can spin down when idle, so the first request after inactivity may take a while. The free plan does not provide an exclusive fixed outbound IP. Atlas therefore cannot use a narrow IP allowlist for this deployment unless the API is moved to a host/plan with fixed egress. Allowing `0.0.0.0/0` would make the database reachable from any IP and is not recommended for real student records; only consider it for a temporary demo with a dedicated, least-privilege database user and a strong generated password. Do not share the MongoDB URI.
+
+After the service is live, point the frontend's `/api/v1/*` rewrite in `frontend/vercel.json` at its Render URL and redeploy the frontend. Verify `/health` and `/api/v1/health` before trying account login.
 
 ## 6. Production environment variables
 | Variable | Required | Notes |
