@@ -1,10 +1,18 @@
 // Thin API client: attaches the bearer token, unwraps the { success, data, meta } envelope and throws ApiError on failure.
 const BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + '/api/v1';
 const TOKEN_KEY = 'cpms.token';
+let memoryToken = null;
 
 export const tokenStore = {
-  get() { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } },
-  set(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* storage unavailable */ } },
+  get() {
+    if (memoryToken) return memoryToken;
+    try { memoryToken = localStorage.getItem(TOKEN_KEY); } catch { /* use the in-memory session */ }
+    return memoryToken;
+  },
+  set(t) {
+    memoryToken = t || null;
+    try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* use the in-memory session */ }
+  },
 };
 
 export class ApiError extends Error {
@@ -53,7 +61,7 @@ async function request(method, path, opts = {}) {
   try { json = await res.json(); } catch { /* non-JSON body */ }
   if (!res.ok || json?.success === false) {
     const err = new ApiError(res.status, json?.error?.code, json?.error?.message || `Request failed (${res.status})`, json?.error?.details);
-    if (res.status === 401 && tokenStore.get() && !opts.noAuthRedirect) onUnauthorized(err);
+    if (res.status === 401 && !opts.noAuthRedirect) onUnauthorized(err);
     throw err;
   }
   return { data: json?.data, meta: json?.meta };
