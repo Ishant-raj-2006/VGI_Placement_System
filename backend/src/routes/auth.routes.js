@@ -59,8 +59,11 @@ router.post(
   validate({ body: z.object({ identifier: z.string().trim().min(1).max(254).optional(), email: zEmail.optional(), password: z.string().min(1).max(128) }).refine((body) => body.identifier || body.email, { path: ['identifier'], message: 'College ID or e-mail is required' }) }),
   asyncHandler(async (req, res) => {
     const { token, expiresAt, user } = await auth.login({ ...req.body, identifier: req.body.identifier || req.body.email, ip: req.ip, userAgent: req.headers['user-agent'] });
-    await audit({ actor: user, action: 'auth.login', entityType: 'User', entityId: user._id, req });
-    return ok(res, { token, expiresAt, user, ...(await profileContext(user)) });
+    const [, context] = await Promise.all([
+      audit({ actor: user, action: 'auth.login', entityType: 'User', entityId: user._id, req }),
+      profileContext(user),
+    ]);
+    return ok(res, { token, expiresAt, user, ...context });
   })
 );
 

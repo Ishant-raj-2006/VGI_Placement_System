@@ -158,7 +158,7 @@ export async function login({ identifier, email, password, ip, userAgent }) {
 
   const { token, jti, expiresAt } = signAccessToken({ userId: user._id, role: user.role, ttlHours });
   await Session.create({ userId: user._id, jti, expiresAt, ip, userAgent: (userAgent || '').slice(0, 300) });
-  return { token, expiresAt, user: await User.findById(user._id) };
+  return { token, expiresAt, user };
 }
 
 export async function logout(session) {
