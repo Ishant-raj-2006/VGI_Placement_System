@@ -22,8 +22,8 @@ export function AuthProvider({ children }) {
     setUnauthorizedHandler(() => { tokenStore.set(null); apply(null); });
   }, []);
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password }, { noAuthRedirect: true });
+  const login = async (identifier, password) => {
+    const { data } = await api.post('/auth/login', { identifier, password }, { noAuthRedirect: true });
     tokenStore.set(data.token);
     apply(data);
     return data;

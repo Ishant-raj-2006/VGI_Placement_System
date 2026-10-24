@@ -38,7 +38,7 @@ export default function Login({ mode = 'student' }) {
         <Link to="/" className="brand" style={{ color: 'var(--text)' }}><img className="brand-logo" src="/logo.png" alt="" /> CPMS</Link>
         <Card title={isStudentPanel ? 'Student login' : 'Faculty login'}>
           <form onSubmit={submit} className="stack-sm">
-            {error && <Alert kind="error">{error.message}{error.code === 'EMAIL_NOT_VERIFIED' && <> <Link to="/verify-email">Verify your e-mail</Link></>}</Alert>}
+            {error && <Alert kind="error">{error.message}{Object.entries(error.fieldErrors || {}).map(([field, message]) => <div className="small" key={field}>{field}: {message}</div>)}{error.code === 'EMAIL_NOT_VERIFIED' && <> <Link to="/verify-email">Verify your e-mail</Link></>}</Alert>}
             {isStudentPanel && <Alert kind="info">For your first login, choose date of birth and enter the DOB given to your faculty in the form. After setting a private password, choose password for future logins.</Alert>}
             <Input label={isStudentPanel ? 'College ID' : 'Faculty / recruiter e-mail'} type={isStudentPanel ? 'text' : 'email'} autoComplete="username" required value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
             {isStudentPanel && (
