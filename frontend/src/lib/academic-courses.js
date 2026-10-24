@@ -220,6 +220,8 @@ const courses = {
   Other: [['OTHER', 'Other / specify']],
 };
 
+const allDepartments = [...new Map(Object.values(courses).flat().map(([value, label]) => [value, [value, label]])).values()];
+
 export const DEGREE_OPTIONS = Object.keys(courses).map((value) => ({
   value,
   label: value === 'Other' ? 'Other / not listed' : value,
@@ -230,7 +232,7 @@ export function getDepartmentOptions(degree) {
   const course = Object.entries(courses).find(
     ([value]) => value.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedDegree
   )?.[1];
-  return (course || []).map(([value, label]) => ({ value, label }));
+  return (course || allDepartments).map(([value, label]) => ({ value, label }));
 }
 
 export const CURRENT_YEAR_OPTIONS = [
