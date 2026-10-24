@@ -12,6 +12,7 @@ export default function FirstLogin() {
   const f = useForm({ currentPassword: '', newPassword: '', confirm: '' });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
   if (!user) return <Navigate to="/student-login" replace />;
   if (!user.mustChangePassword) return <Navigate to={user.mustCompleteProfile ? '/student/profile' : '/'} replace />;
@@ -44,7 +45,7 @@ export default function FirstLogin() {
           <p className="muted">Your date-of-birth password is temporary. Set a private password before continuing.</p>
           {error && <Alert kind="error">{error.message}</Alert>}
           <form onSubmit={submit} className="stack-sm">
-            <Input label="Temporary password (date of birth)" type="password" autoComplete="current-password" required {...f.bind('currentPassword')} />
+            <Input label="Temporary password (date of birth)" type="date" autoComplete="bday" max={today} hint="Select the date of birth used as your temporary password." required {...f.bind('currentPassword')} />
             <Input label="New password" type="password" autoComplete="new-password" required hint="8+ characters with upper-case, lower-case and a digit" {...f.bind('newPassword')} />
             <Input label="Confirm new password" type="password" autoComplete="new-password" required {...f.bind('confirm')} />
             <Button type="submit" variant="primary" loading={busy} className="btn-block">Update password</Button>
