@@ -53,6 +53,7 @@ export default function Profile() {
   const degreeOptions = f.values.degree && !DEGREE_OPTIONS.some((option) => option.value === f.values.degree)
     ? [...DEGREE_OPTIONS, { value: f.values.degree, label: `${f.values.degree} (current)` }]
     : DEGREE_OPTIONS;
+  const customDepartment = f.values.degree === 'Other' || (f.values.degree && departmentOptions.length === 0);
   const profileDepartmentOptions = f.values.department && !departmentOptions.some((option) => option.value === f.values.department)
     ? [{ value: f.values.department, label: `${f.values.department} (current)` }, ...departmentOptions]
     : departmentOptions;
@@ -79,16 +80,17 @@ export default function Profile() {
       });
       return;
     }
-    if ((v.degree === 'Other' && !v.degreeOther.trim()) || (v.department === 'OTHER' && !v.departmentOther.trim())) {
+    if ((v.degree === 'Other' && !v.degreeOther.trim()) || ((customDepartment || v.department === 'OTHER') && !v.departmentOther.trim())) {
       f.setErrors({
         ...(v.degree === 'Other' && !v.degreeOther.trim() ? { degreeOther: 'Enter your degree' } : {}),
+        ...(customDepartment && !v.departmentOther.trim() ? { departmentOther: 'Enter your branch or specialization' } : {}),
         ...(v.department === 'OTHER' && !v.departmentOther.trim() ? { departmentOther: 'Enter your branch or specialization' } : {}),
       });
       return;
     }
     setBusy(true);
     try {
-      const { data } = await api.put('/student/profile', { name: v.name, rollNumber: v.rollNumber, collegeName: v.collegeName, degree: v.degree === 'Other' ? v.degreeOther.trim() : v.degree, department: v.degree === 'Other' || v.department === 'OTHER' ? v.departmentOther.trim() : v.department, currentSemester: v.currentSemester === '' ? null : Number(v.currentSemester), graduationYear: Number(v.graduationYear), personal: { contactNumber: v.contactNumber, dateOfBirth: v.dateOfBirth || null, address: v.address } });
+      const { data } = await api.put('/student/profile', { name: v.name, rollNumber: v.rollNumber, collegeName: v.collegeName, degree: v.degree === 'Other' ? v.degreeOther.trim() : v.degree, department: customDepartment || v.department === 'OTHER' ? v.departmentOther.trim() : v.department, currentSemester: v.currentSemester === '' ? null : Number(v.currentSemester), graduationYear: Number(v.graduationYear), personal: { contactNumber: v.contactNumber, dateOfBirth: v.dateOfBirth || null, address: v.address } });
       toast.success(data.verificationReset ? 'Saved. Academic changes need to be verified again.' : 'Profile saved');
       state.reload(); refresh();
     } catch (err) { setError(err); f.setErrors(err.fieldErrors); } finally { setBusy(false); }
@@ -141,7 +143,7 @@ export default function Profile() {
                   <Input label="College" {...f.bind('collegeName')} />
                   <Select label="Degree" required options={degreeOptions} {...f.bind('degree')} onChange={(e) => f.setValues({ ...f.values, degree: e.target.value, degreeOther: '', department: '', departmentOther: '' })} />
                   {f.values.degree === 'Other' && <Input label="Enter degree" required maxLength="60" {...f.bind('degreeOther')} />}
-                  {f.values.degree === 'Other' ? <Input label="Department / Branch / Specialization" required maxLength="40" {...f.bind('departmentOther')} /> : <>
+                  {customDepartment ? <Input label="Department / Branch / Specialization" required maxLength="40" {...f.bind('departmentOther')} /> : <>
                     <Select label="Department / Branch" required options={profileDepartmentOptions} placeholder="Select branch…" {...f.bind('department')} onChange={(e) => f.setValues({ ...f.values, department: e.target.value, departmentOther: '' })} />
                     {f.values.department === 'OTHER' && <Input label="Enter branch / specialization" required maxLength="40" {...f.bind('departmentOther')} />}
                   </>}

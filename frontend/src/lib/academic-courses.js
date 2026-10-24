@@ -226,7 +226,11 @@ export const DEGREE_OPTIONS = Object.keys(courses).map((value) => ({
 }));
 
 export function getDepartmentOptions(degree) {
-  return (courses[degree] || []).map(([value, label]) => ({ value, label }));
+  const normalizedDegree = String(degree || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const course = Object.entries(courses).find(
+    ([value]) => value.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedDegree
+  )?.[1];
+  return (course || []).map(([value, label]) => ({ value, label }));
 }
 
 export const CURRENT_YEAR_OPTIONS = [
