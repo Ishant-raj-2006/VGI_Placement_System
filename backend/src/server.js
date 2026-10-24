@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config, assertProductionConfig } from './config/env.js';
-import { connectDb, disconnectDb } from './config/db.js';
+import { connectDb, disconnectDb, ensureDbConnected } from './config/db.js';
 import app from './app.js';
 import { startJobs, stopJobs } from './jobs/index.js';
 import { logger } from './utils/logger.js';
@@ -10,10 +10,30 @@ export default app;
 
 async function main() {
   assertProductionConfig();
-  await connectDb();
-  logger.info('MongoDB connected');
+
+  if (config.isProd) {
+    await connectDb();
+    logger.info('MongoDB connected');
+  }
+
   const server = app.listen(config.port, () => logger.info(`CPMS API listening on :${config.port} (${config.nodeEnv})`));
-  startJobs();
+
+  if (config.isProd) {
+    startJobs();
+  } else {
+    const connectWithRetry = async () => {
+      try {
+        await ensureDbConnected();
+        logger.info('MongoDB connected');
+        startJobs();
+      } catch (err) {
+        logger.warn('MongoDB is unavailable; retrying in 5 seconds', { message: err.message });
+        const retry = setTimeout(connectWithRetry, 5000);
+        retry.unref();
+      }
+    };
+    void connectWithRetry();
+  }
 
   const shutdown = async (signal) => {
     logger.info(`${signal} received, shutting down`);

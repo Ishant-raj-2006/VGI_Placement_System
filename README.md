@@ -25,17 +25,13 @@ npm install
 npm run seed:reset              # demo data (DROPS the database named in MONGODB_URI)
 npm run dev                     # API on http://localhost:5000
 
-cd backend
-cp .env.example .env           
-npm install
-npm run seed:reset              
-npm run dev  
-
 # 2. Frontend (second terminal)
 cd frontend
 npm install
 npm run dev                     # UI on http://localhost:5173 (proxies /api to :5000)
 ```
+
+If MongoDB is not running, the development API stays available and retries the database connection every 5 seconds. API requests return a clear `503` until MongoDB is reachable; start MongoDB locally or update `MONGODB_URI` in `backend/.env`.
 
 Open http://localhost:5173 and log in with a demo account:
 
@@ -108,3 +104,13 @@ If the frontend is built (`frontend/dist`), the backend serves it at `/` too —
 | [docs/USER_MANUAL.md](docs/USER_MANUAL.md) | Step-by-step guides for each role |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production setup, backup/restore, hardening |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | P0 / P1 / P2 priorities and ideas beyond v1 |
+
+
+
+
+
+
+git add .
+git commit -m "update "
+git branch -M main
+git push origin main

@@ -66,6 +66,13 @@ export function createApp() {
     res.status(db === 'connected' ? 200 : 503).json({ status: db === 'connected' ? 'ok' : 'degraded', database: db, time: new Date().toISOString() });
   });
 
+  app.use('/api/v1', (req, res, next) => {
+    if (dbState() === 'connected') return next();
+    return res.status(503).json({
+      success: false,
+      error: { code: 'SERVICE_UNAVAILABLE', message: 'The database is temporarily unavailable. Please try again shortly.' },
+    });
+  });
   app.use('/api/v1', apiLimiter, routes);
 
   // Optionally serve the built React app (single-container deployment). API routes above take priority.
